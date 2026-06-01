@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (installed fresh in Docker)
+node_modules
+
+# Environment files (secrets injected at runtime)
+.env
+.env.*
+!.env.example
+
+# Documentation
+*.md
+LICENSE
+
+# IDE / Editor
+.vscode
+.idea
+
+# CI/CD
+.github
+
+# Docker files (prevent recursive context)
+docker-compose*.yml
+Dockerfile
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing & Coverage
+coverage
+.nyc_output
+
+# Misc
+*.log
+*.tgz

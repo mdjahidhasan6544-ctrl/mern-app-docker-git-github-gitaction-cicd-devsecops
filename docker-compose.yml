@@ -1,0 +1,47 @@
+# BagStore production Docker Compose
+# Runtime values are loaded from .env or --env-file.
+
+services:
+  backend:
+    image: ${DOCKER_IMAGE:?DOCKER_IMAGE is required}-backend:${DOCKER_TAG:?DOCKER_TAG is required}
+    container_name: bagstore-backend
+    environment:
+      NODE_ENV: ${NODE_ENV:?NODE_ENV is required}
+      PORT: ${SERVER_PORT:?SERVER_PORT is required}
+      MONGODB_URI: ${MONGODB_URI:?MONGODB_URI is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      BACKEND_URL: ${BACKEND_URL:?BACKEND_URL is required}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${SERVER_PORT:?SERVER_PORT is required}/api/status"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+    networks:
+      - bagstore-network
+
+  frontend:
+    image: ${DOCKER_IMAGE:?DOCKER_IMAGE is required}-frontend:${DOCKER_TAG:?DOCKER_TAG is required}
+    container_name: bagstore-frontend
+    ports:
+      - "${APP_PORT:?APP_PORT is required}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - bagstore-network
+
+volumes:
+  uploads:
+    driver: local
+
+networks:
+  bagstore-network:
+    driver: bridge
