@@ -125,6 +125,7 @@ jobs:
       SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME || 'BagStore' }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+      SONAR_SOURCES: ${{ vars.SONAR_SOURCES || 'backend,frontend' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -135,11 +136,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sonar_host_url="${SONAR_HOST_URL%/}"
+          sonar_organization="${SONAR_ORGANIZATION:-}"
+
+          if [ -z "$sonar_organization" ] && [ "$sonar_host_url" = "https://sonarcloud.io" ]; then
+            sonar_organization="$GITHUB_REPOSITORY_OWNER"
+          fi
+
           {
             echo "sonar.projectKey=${SONAR_PROJECT_KEY}"
             echo "sonar.projectName=${SONAR_PROJECT_NAME}"
-            if [ -n "${SONAR_ORGANIZATION:-}" ]; then
-              echo "sonar.organization=${SONAR_ORGANIZATION}"
+            echo "sonar.host.url=${sonar_host_url}"
+            echo "sonar.sources=${SONAR_SOURCES}"
+            if [ -n "$sonar_organization" ]; then
+              echo "sonar.organization=${sonar_organization}"
             fi
           } >> sonar-project.properties
 
@@ -147,7 +157,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
 
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
