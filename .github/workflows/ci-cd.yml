@@ -435,29 +435,34 @@ jobs:
             fi
             echo "Compose probe: v2=$compose_v2_status v1=$compose_v1_status v1_env=$compose_v1_env_status"
 
-            run_compose() {
-              if [ "$compose_v2_status" -eq 0 ]; then
-                echo "Using Docker Compose v2 plugin."
-                docker compose --env-file .env "$@"
-              elif [ "$compose_v1_status" -eq 0 ]; then
-                if [ "$compose_v1_env_status" -eq 0 ]; then
-                  echo "Using docker-compose with --env-file support."
-                  docker-compose --env-file .env "$@"
-                else
-                  echo "Using docker-compose with the .env file from $DEPLOY_PATH."
-                  docker-compose "$@"
-                fi
+            if [ "$compose_v2_status" -eq 0 ]; then
+              echo "Using Docker Compose v2 plugin."
+              docker compose --env-file .env pull
+              docker compose --env-file .env up -d --remove-orphans
+            elif [ "$compose_v1_status" -eq 0 ]; then
+              if [ "$compose_v1_env_status" -eq 0 ]; then
+                echo "Using docker-compose with --env-file support."
+                docker-compose --env-file .env pull
+                docker-compose --env-file .env up -d --remove-orphans
               else
-                echo "Docker Compose is not installed; using docker/compose:1.29.2 helper container."
-                docker run --rm \
-                  -v /var/run/docker.sock:/var/run/docker.sock \
-                  -v "$PWD:/workspace" \
-                  -w /workspace \
-                  docker/compose:1.29.2 \
-                  --env-file .env "$@"
+                echo "Using docker-compose with the .env file from $DEPLOY_PATH."
+                docker-compose pull
+                docker-compose up -d --remove-orphans
               fi
-            }
+            else
+              echo "Docker Compose is not installed; using docker/compose:1.29.2 helper container."
+              docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v "$PWD:/workspace" \
+                -w /workspace \
+                docker/compose:1.29.2 \
+                --env-file .env pull
+              docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v "$PWD:/workspace" \
+                -w /workspace \
+                docker/compose:1.29.2 \
+                --env-file .env up -d --remove-orphans
+            fi
 
-            run_compose pull
-            run_compose up -d --remove-orphans
             docker image prune -f
