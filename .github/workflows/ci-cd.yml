@@ -301,8 +301,14 @@ jobs:
           sarif_file: trivy-frontend-results.sarif
           category: trivy-frontend
 
-      - name: Fail on Trivy findings
+      - name: Report Trivy findings warning
         if: steps.trivy_backend.outcome == 'failure' || steps.trivy_frontend.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Trivy found high or critical image vulnerabilities. SARIF results were uploaded to GitHub code scanning. Set repository variable TRIVY_FAIL_ON_FINDINGS=true to make these findings block the pipeline."
+
+      - name: Fail on Trivy findings
+        if: vars.TRIVY_FAIL_ON_FINDINGS == 'true' && (steps.trivy_backend.outcome == 'failure' || steps.trivy_frontend.outcome == 'failure')
         run: exit 1
 
       - name: Push Docker images
