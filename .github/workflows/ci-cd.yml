@@ -424,17 +424,16 @@ jobs:
             echo "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 
             echo "DockerHub login completed; checking Docker Compose availability."
-            set +e
-            docker compose version >/dev/null 2>&1
-            compose_v2_status=$?
-            command -v docker-compose >/dev/null 2>&1
-            compose_v1_status=$?
+            compose_v2_status=0
+            docker compose version >/dev/null 2>&1 || compose_v2_status=$?
+            compose_v1_status=0
+            command -v docker-compose >/dev/null 2>&1 || compose_v1_status=$?
             compose_v1_env_status=1
             if [ "$compose_v1_status" -eq 0 ]; then
-              docker-compose --env-file .env version >/dev/null 2>&1
-              compose_v1_env_status=$?
+              compose_v1_env_status=0
+              docker-compose --env-file .env version >/dev/null 2>&1 || compose_v1_env_status=$?
             fi
-            set -e
+            echo "Compose probe: v2=$compose_v2_status v1=$compose_v1_status v1_env=$compose_v1_env_status"
 
             run_compose() {
               if [ "$compose_v2_status" -eq 0 ]; then
