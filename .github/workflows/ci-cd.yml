@@ -364,7 +364,7 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           envs: DEPLOY_DIR,NODE_ENV,APP_PROTOCOL,APP_PORT,SERVER_PORT,DOCKER_IMAGE,DOCKER_TAG,DOMAIN_NAME,ALLOWED_ORIGINS_EXTRA,AWS_HOST,MONGODB_URI,JWT_SECRET,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
-          script_stop: true
+          script_stop: false
           script: |
             set -euo pipefail
 
