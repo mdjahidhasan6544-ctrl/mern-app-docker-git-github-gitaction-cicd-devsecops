@@ -423,12 +423,25 @@ jobs:
 
             echo "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 
+            echo "DockerHub login completed; checking Docker Compose availability."
+            set +e
+            docker compose version >/dev/null 2>&1
+            compose_v2_status=$?
+            command -v docker-compose >/dev/null 2>&1
+            compose_v1_status=$?
+            compose_v1_env_status=1
+            if [ "$compose_v1_status" -eq 0 ]; then
+              docker-compose --env-file .env version >/dev/null 2>&1
+              compose_v1_env_status=$?
+            fi
+            set -e
+
             run_compose() {
-              if docker compose version >/dev/null 2>&1; then
+              if [ "$compose_v2_status" -eq 0 ]; then
                 echo "Using Docker Compose v2 plugin."
                 docker compose --env-file .env "$@"
-              elif command -v docker-compose >/dev/null 2>&1; then
-                if docker-compose --env-file .env version >/dev/null 2>&1; then
+              elif [ "$compose_v1_status" -eq 0 ]; then
+                if [ "$compose_v1_env_status" -eq 0 ]; then
                   echo "Using docker-compose with --env-file support."
                   docker-compose --env-file .env "$@"
                 else
