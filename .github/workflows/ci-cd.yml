@@ -422,6 +422,21 @@ jobs:
             bash scripts/validate-env.sh .env
 
             echo "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-            docker compose --env-file .env pull
-            docker compose --env-file .env up -d --remove-orphans
+
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE="docker compose --env-file .env"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              if docker-compose --env-file .env version >/dev/null 2>&1; then
+                COMPOSE="docker-compose --env-file .env"
+              else
+                echo "docker-compose does not support --env-file; using the .env file from $DEPLOY_DIR."
+                COMPOSE="docker-compose"
+              fi
+            else
+              echo "Docker Compose is not installed. Install docker-compose-plugin or docker-compose on the server." >&2
+              exit 1
+            fi
+
+            $COMPOSE pull
+            $COMPOSE up -d --remove-orphans
             docker image prune -f
