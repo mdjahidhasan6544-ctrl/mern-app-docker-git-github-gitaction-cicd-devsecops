@@ -5,7 +5,7 @@
 # Uses Alpine for minimal attack surface
 # ============================================
 
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Security: run as non-root user
 RUN addgroup -g 1001 -S appgroup && \
