@@ -206,6 +206,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
 
       - name: Build backend image locally
         uses: docker/build-push-action@v6
@@ -217,8 +219,6 @@ jobs:
           tags: |
             ${{ env.BACKEND_IMAGE }}:${{ env.DOCKER_TAG }}
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build frontend image locally
         uses: docker/build-push-action@v6
@@ -232,8 +232,6 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           build-args: |
             VITE_PUBLIC_API_URL=
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Trivy scan backend image
         id: trivy_backend
