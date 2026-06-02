@@ -26,11 +26,12 @@ jobs:
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
       JWT_SECRET: ${{ secrets.JWT_SECRET || secrets.APP_SECRET }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      NODE_ENV: ${{ vars.NODE_ENV }}
-      APP_PORT: ${{ vars.APP_PORT }}
-      SERVER_PORT: ${{ vars.SERVER_PORT }}
-      DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
-      DOCKER_TAG: ${{ vars.DOCKER_TAG }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+      NODE_ENV: ${{ vars.NODE_ENV || 'production' }}
+      APP_PORT: ${{ vars.APP_PORT || '80' }}
+      SERVER_PORT: ${{ vars.SERVER_PORT || '5000' }}
+      DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE || format('{0}/bagstore', secrets.DOCKERHUB_USERNAME) }}
+      DOCKER_TAG: ${{ vars.DOCKER_TAG || 'latest' }}
     steps:
       - name: Check required GitHub Secrets and Variables
         shell: bash
@@ -47,6 +48,7 @@ jobs:
             MONGODB_URI
             JWT_SECRET
             SONAR_TOKEN
+            SONAR_HOST_URL
             NODE_ENV
             APP_PORT
             SERVER_PORT
@@ -122,6 +124,7 @@ jobs:
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'bagstore' }}
       SONAR_PROJECT_NAME: ${{ vars.SONAR_PROJECT_NAME || 'BagStore' }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -144,7 +147,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
 
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
@@ -176,9 +179,9 @@ jobs:
       - source-security-scan
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
-      BACKEND_IMAGE: ${{ vars.DOCKER_IMAGE }}-backend
-      FRONTEND_IMAGE: ${{ vars.DOCKER_IMAGE }}-frontend
-      DOCKER_TAG: ${{ vars.DOCKER_TAG }}
+      BACKEND_IMAGE: ${{ vars.DOCKER_IMAGE || format('{0}/bagstore', secrets.DOCKERHUB_USERNAME) }}-backend
+      FRONTEND_IMAGE: ${{ vars.DOCKER_IMAGE || format('{0}/bagstore', secrets.DOCKERHUB_USERNAME) }}-frontend
+      DOCKER_TAG: ${{ vars.DOCKER_TAG || 'latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -297,12 +300,12 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
-          NODE_ENV: ${{ vars.NODE_ENV }}
+          NODE_ENV: ${{ vars.NODE_ENV || 'production' }}
           APP_PROTOCOL: ${{ vars.APP_PROTOCOL || 'http' }}
-          APP_PORT: ${{ vars.APP_PORT }}
-          SERVER_PORT: ${{ vars.SERVER_PORT }}
-          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
-          DOCKER_TAG: ${{ vars.DOCKER_TAG }}
+          APP_PORT: ${{ vars.APP_PORT || '80' }}
+          SERVER_PORT: ${{ vars.SERVER_PORT || '5000' }}
+          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE || format('{0}/bagstore', secrets.DOCKERHUB_USERNAME) }}
+          DOCKER_TAG: ${{ vars.DOCKER_TAG || 'latest' }}
           DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
           ALLOWED_ORIGINS_EXTRA: ${{ vars.ALLOWED_ORIGINS_EXTRA }}
           AWS_HOST: ${{ secrets.AWS_HOST }}
