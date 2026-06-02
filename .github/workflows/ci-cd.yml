@@ -379,7 +379,7 @@ jobs:
 
             PUBLIC_HOST="${DOMAIN_NAME:-$AWS_HOST}"
             FRONTEND_URL="${APP_PROTOCOL}://${PUBLIC_HOST}"
-            if [ "$APP_PORT" != "80" ] && [ "$APP_PORT" != "443" ]; then
+            if [ "$APP_PORT" != "3000" ] && [ "$APP_PORT" != "443" ]; then
               FRONTEND_URL="${FRONTEND_URL}:${APP_PORT}"
             fi
 
