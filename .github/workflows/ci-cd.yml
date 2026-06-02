@@ -423,20 +423,29 @@ jobs:
 
             echo "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 
-            if docker compose version >/dev/null 2>&1; then
-              COMPOSE="docker compose --env-file .env"
-            elif command -v docker-compose >/dev/null 2>&1; then
-              if docker-compose --env-file .env version >/dev/null 2>&1; then
-                COMPOSE="docker-compose --env-file .env"
+            run_compose() {
+              if docker compose version >/dev/null 2>&1; then
+                echo "Using Docker Compose v2 plugin."
+                docker compose --env-file .env "$@"
+              elif command -v docker-compose >/dev/null 2>&1; then
+                if docker-compose --env-file .env version >/dev/null 2>&1; then
+                  echo "Using docker-compose with --env-file support."
+                  docker-compose --env-file .env "$@"
+                else
+                  echo "Using docker-compose with the .env file from $DEPLOY_PATH."
+                  docker-compose "$@"
+                fi
               else
-                echo "docker-compose does not support --env-file; using the .env file from $DEPLOY_DIR."
-                COMPOSE="docker-compose"
+                echo "Docker Compose is not installed; using docker/compose:1.29.2 helper container."
+                docker run --rm \
+                  -v /var/run/docker.sock:/var/run/docker.sock \
+                  -v "$PWD:/workspace" \
+                  -w /workspace \
+                  docker/compose:1.29.2 \
+                  --env-file .env "$@"
               fi
-            else
-              echo "Docker Compose is not installed. Install docker-compose-plugin or docker-compose on the server." >&2
-              exit 1
-            fi
+            }
 
-            $COMPOSE pull
-            $COMPOSE up -d --remove-orphans
+            run_compose pull
+            run_compose up -d --remove-orphans
             docker image prune -f
