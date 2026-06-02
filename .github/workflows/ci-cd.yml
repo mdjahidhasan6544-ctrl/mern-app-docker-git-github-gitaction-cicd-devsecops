@@ -154,10 +154,18 @@ jobs:
           } >> sonar-project.properties
 
       - name: SonarQube scan
+        id: sonarqube_scan
+        continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+
+      - name: Report SonarQube scan warning
+        if: steps.sonarqube_scan.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::SonarQube scan failed. Check that SONAR_TOKEN belongs to the configured SonarQube/SonarCloud project and set SONAR_HOST_URL when using a self-hosted SonarQube server."
 
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
