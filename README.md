@@ -4,6 +4,8 @@ BagStore is a MERN e-commerce application for luxury bags. It includes a React/V
 
 The deployment setup is environment-driven. You should not edit `docker-compose.yml`, the GitHub Actions workflow, or application code when the AWS host, ports, image name, image tag, database URI, or environment changes.
 
+Admin dashboard credentials can also be managed safely through GitHub Secrets. The CI/CD pipeline can update the production admin email and password in MongoDB Atlas without committing credentials to the repository.
+
 ## Stack
 
 | Layer | Technology |
@@ -21,6 +23,7 @@ The deployment setup is environment-driven. You should not edit `docker-compose.
 .
 ├── .github/workflows/ci-cd.yml
 ├── backend/
+│   └── scripts/updateAdminFromSecrets.js
 ├── frontend/
 ├── scripts/validate-env.sh
 ├── docker-compose.yml
@@ -113,6 +116,61 @@ Default seeded admin:
 admin@craftweave.com / admin123
 ```
 
+For production, do not keep the default admin credentials. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in GitHub Secrets so the CI/CD pipeline can update the production admin account safely.
+
+## Admin Credentials Update
+
+The production admin dashboard login can be updated from GitHub Secrets through the existing CI/CD pipeline.
+
+Required admin secrets:
+
+| Secret | Description |
+| --- | --- |
+| `ADMIN_EMAIL` | Production admin dashboard login email |
+| `ADMIN_PASSWORD` | Production admin dashboard login password; hashed before saving to MongoDB |
+| `MONGODB_URI` | Existing MongoDB Atlas connection string used by the update script |
+
+The admin update script should live in:
+
+```text
+backend/scripts/updateAdminFromSecrets.js
+```
+
+The backend `package.json` should include:
+
+```json
+{
+  "scripts": {
+    "update-admin": "node scripts/updateAdminFromSecrets.js"
+  }
+}
+```
+
+The script must:
+
+- Read `MONGODB_URI`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` from environment variables.
+- Connect to MongoDB Atlas using Mongoose.
+- Reuse the existing user/admin model and collection.
+- Hash `ADMIN_PASSWORD` with bcrypt before saving.
+- Update only the admin account.
+- Preserve required admin fields such as `role` or `isAdmin`, depending on the existing schema.
+- Avoid printing secrets in GitHub Actions logs.
+- Close the MongoDB connection after the update.
+
+Example CI/CD step:
+
+```yaml
+- name: Update production admin credentials
+  working-directory: backend
+  env:
+    MONGODB_URI: ${{ secrets.MONGODB_URI }}
+    ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+    ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+  run: npm run update-admin
+```
+
+This step should be added to the existing `.github/workflows/ci-cd.yml` push-to-main deployment flow without replacing the full workflow.
+
 ## GitHub Secrets
 
 Go to GitHub repository settings, then **Secrets and variables** > **Actions** > **Secrets**.
@@ -129,6 +187,8 @@ Required:
 | `MONGODB_URI` | MongoDB Atlas connection string |
 | `JWT_SECRET` | JWT signing secret used by the backend |
 | `SONAR_TOKEN` | SonarQube/SonarCloud token |
+| `ADMIN_EMAIL` | Production admin dashboard login email |
+| `ADMIN_PASSWORD` | Production admin dashboard login password |
 
 Alternative:
 
@@ -189,15 +249,29 @@ Push to `main`:
 5. Build backend and frontend Docker images locally.
 6. Run Trivy image scans and fail on high or critical findings.
 7. Push Docker images to DockerHub only after scans pass.
-8. Upload `docker-compose.yml` and `scripts/validate-env.sh` to AWS.
-9. Generate or update `.env` on the AWS server from GitHub Secrets/Variables.
-10. Validate the generated `.env`.
-11. Pull latest images and restart the app:
+8. Update the production admin credentials in MongoDB Atlas from `ADMIN_EMAIL` and `ADMIN_PASSWORD` if the admin update step is enabled.
+9. Upload `docker-compose.yml` and `scripts/validate-env.sh` to AWS.
+10. Generate or update `.env` on the AWS server from GitHub Secrets/Variables.
+11. Validate the generated `.env`.
+12. Pull latest images and restart the app:
 
 ```bash
 docker compose --env-file .env pull
 docker compose --env-file .env up -d --remove-orphans
 ```
+
+## Manual Admin Update
+
+To update the admin credentials without changing application code, update these GitHub Secrets:
+
+```text
+ADMIN_EMAIL
+ADMIN_PASSWORD
+```
+
+Then run the existing GitHub Actions workflow by pushing to `main`, or manually run the workflow if `workflow_dispatch` is enabled.
+
+The workflow will use the existing `MONGODB_URI` secret to connect to MongoDB Atlas and update only the admin account. The password is hashed before saving.
 
 ## AWS Ubuntu One-Time Setup
 
@@ -266,8 +340,16 @@ docker compose logs -f
 ## Security Notes
 
 - Never commit real `.env` files.
-- Never commit private keys, certificates, MongoDB URIs, JWT secrets, or DockerHub tokens.
+- Never commit private keys, certificates, MongoDB URIs, JWT secrets, DockerHub tokens, admin emails, or admin passwords.
 - Use GitHub Secrets for sensitive values.
 - Use GitHub Variables for non-sensitive deployment settings.
-- Rotate `JWT_SECRET`, DockerHub tokens, and SSH keys if they are exposed.
+- Rotate `JWT_SECRET`, DockerHub tokens, SSH keys, and admin credentials if they are exposed.
+- Replace the default seeded admin credentials before using the app in production.
+- Never print `MONGODB_URI`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `JWT_SECRET`, or deployment keys in CI/CD logs.
 - Prefer a domain name and HTTPS for production traffic.
+
+## Author
+
+Md Jahid Hasan  
+Email: mdjahidhasan6544@gmail.com  
+LinkedIn: https://www.linkedin.com/in/jahidhasan-devops/
