@@ -24,6 +24,8 @@ jobs:
       AWS_USER: ${{ secrets.AWS_USER }}
       AWS_SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET || secrets.APP_SECRET }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
@@ -46,6 +48,8 @@ jobs:
             AWS_USER
             AWS_SSH_PRIVATE_KEY
             MONGODB_URI
+            ADMIN_EMAIL
+            ADMIN_PASSWORD
             JWT_SECRET
             SONAR_TOKEN
             SONAR_HOST_URL
@@ -332,6 +336,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Update production admin credentials
+        working-directory: backend
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          npm ci --omit=dev --ignore-scripts
+          npm run update-admin
 
       - name: Upload Compose and validation script
         uses: appleboy/scp-action@v0.1.7

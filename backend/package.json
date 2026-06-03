@@ -7,6 +7,7 @@
     "start": "node server.js",
     "data:import": "node seeder.js",
     "data:destroy": "node seeder.js -d",
+    "update-admin": "node scripts/updateAdminFromSecrets.js",
     "db:start": "node start-local-db.js",
     "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit"
   },
